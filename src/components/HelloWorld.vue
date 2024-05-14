@@ -24,10 +24,11 @@ setup() {
   const getData = async () => {
     try {
       const response = await axios.get("/get/chartData");
-      time.value = response.data.map(item => item.time);
+      time.value = response.data.map(item => new Date(item.time).getTime());
       ping.value = response.data.map(item => item.ping);
       console.log(response);
-      drawChart(chartCanvas.value.getContext('2d'),time,ping);
+    //  console.log(typeof time.value[0]);
+      drawChart(chartCanvas.value.getContext('2d'),time.value,ping.value);
     } catch (error) {
       console.error('Error fetching data:', error);
     }

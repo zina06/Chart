@@ -6,13 +6,13 @@ export const drawChart = (ctx, time, ping) => {
     new Chart(ctx, {
       type: 'line',
       data: {
-        labels: time.value,
+        labels: time,
         datasets: [{
           label: 'ping',
-          data: ping.value,
+          data: ping,
           borderColor: 'rgb(75, 192, 192)',
           backgroundColor: 'rgb(75, 192, 192)',
-          borderWidth: 1,
+          borderWidth: 3,
           fill: false,
           pointRadius : 0
         }]
