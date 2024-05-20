@@ -1,5 +1,5 @@
 <template>
- 
+  <router-view/>
   <HelloWorld/>
 </template>
 
@@ -13,7 +13,3 @@ export default {
   }
 }
 </script>
-
-<style>
-
-</style>
