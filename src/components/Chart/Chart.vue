@@ -1,21 +1,22 @@
 <template>
 
      <div style="display: flex; justify-content: center; margin-top: 20px;">
-    <div style="margin: 10px;"><Datepicker 
-        v-model="startDate"
-        @focus="handleStartDateChange"
-        />       
+      <div style="margin: 10px;"><Datepicker 
+          v-model="startDate"
+          @focus="handleStartDateChange"
+          />       
+      </div>
+      <span style="margin: 10px;">~</span>
+      <div  style="margin: 10px;"><Datepicker      
+          v-model="endDate"     
+          @focus="handleEndDateChange"   
+          />
+      </div>
+     <div>
+
     </div>
-    <span style="margin: 10px;">~</span>
-    <div  style="margin: 10px;"><Datepicker      
-        v-model="endDate"     
-        @focus="handleEndDateChange"   
-         />
+       <button @click="getData" class="btn btn-info btn-sm" style="height: 35px; margin-top: 5px; width: 50px; margin-left: 10px; color: white;">조회</button>
     </div>
-    <div>
-  </div>
-    <button @click="getData" class="btn btn-info btn-sm" style="height: 37px; margin-top: 5px; width: 50px; margin-left: 10px; color: white;">조회</button>
-  </div>
 
   <div class="spinner-div" v-if="isLoading">
       <q-spinner-tail
@@ -24,9 +25,9 @@
       />
   </div>
 
-    <div>
-      <canvas ref="chartCanvas" id="canvas"></canvas>
-    </div>
+  <div>
+    <canvas ref="chartCanvas" id="canvas"></canvas>
+  </div>
 
 
 
@@ -88,11 +89,6 @@
     };
   
     const getData = async () => {
-      console.log("getData");
-      console.log("startDate value"+startDate.value);
-   
-
-      console.log(moment(startDate.value).format('YYYY-MM-DD').substring(0, 12));
 
       const formattedStartDate = moment(startDate.value).format('YYYY-MM-DD');
       const formattedEndDate = moment(endDate.value).format('YYYY-MM-DD');
@@ -111,25 +107,31 @@
                 ping.value = response.data.map(item => item.ping);
               
 
-              console.log("time"+time.value+"ss");
-              console.log(response.data.length);
-
-              drawChart(chartCanvas.value.getContext('2d'),time.value,ping.value);
-              isLoading.value = false;
+                drawChart(chartCanvas.value.getContext('2d'),time.value,ping.value);
+                isLoading.value = false;
             } catch (error) {
               console.error('Error fetching data:', error);
             }
       } else {
-        alert("시작날짜는 끝날짜보다 작아야 합니다.")
+          alert("시작날짜는 끝날짜보다 작아야 합니다.")
       }
     };
-      onMounted(getData);
+
+
+    onMounted(getData);
 
    
   
-    return { chartCanvas,startDate ,endDate,handleStartDateChange,handleEndDateChange, 
-      selectedDate, formatStartDate , getData, isLoading
-    };
+    return { chartCanvas,
+              startDate,
+              endDate,
+              handleStartDateChange,
+              handleEndDateChange,
+              selectedDate,
+              formatStartDate, 
+              getData, 
+              isLoading
+        };
     }
   };
   </script>
@@ -150,8 +152,8 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.8); /* 배경을 반투명하게 설정하여 로딩 화면임을 나타냅니다 */
-  z-index: 9999; /* 다른 요소들보다 위에 나타나도록 설정합니다 */
+  background: rgba(255, 255, 255, 0.8); 
+  z-index: 9999; 
 }
   </style>
   
