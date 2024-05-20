@@ -15,7 +15,7 @@ export const drawChart = (ctx, time, ping) => {
           data: ping,
           borderColor: 'rgb(75, 192, 192)',
           backgroundColor: 'rgb(75, 192, 192)',
-          borderWidth: 3,
+          borderWidth: 1,
           fill: false,
           pointRadius : 0
         }]
