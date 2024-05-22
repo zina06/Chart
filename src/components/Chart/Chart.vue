@@ -1,5 +1,5 @@
 <template>
-
+  
      <div style="display: flex; justify-content: center; margin-top: 20px;">
       <div style="margin: 10px;"><Datepicker 
           v-model="startDate"
@@ -14,8 +14,10 @@
       </div>
      <div>
 
+      
+     
     </div>
-       <button @click="getData" class="btn btn-info btn-sm" style="height: 35px; margin-top: 5px; width: 50px; margin-left: 10px; color: white;">조회</button>
+       <button @click="getData" class="btn btn-info btn-sm">조회</button>
     </div>
 
   <div class="spinner-div" v-if="isLoading">
@@ -25,8 +27,12 @@
       />
   </div>
 
-  <div>
-    <canvas ref="chartCanvas" id="canvas"></canvas>
+  <label style="margin-top: 30px; margin-bottom: 30px;">서버 이름 : {{  }}</label>
+  <br>
+  <div>   
+    <canvas ref="chartCanvas" id="canvas">    
+    </canvas>
+ 
   </div>
 
 
@@ -65,9 +71,9 @@
         return;
       }
 
-      var Year = clickStartDate.substring(0,4);
-      var Month = clickStartDate.substring(5,7);
-      var Day = clickStartDate.substring(8,10);
+      let Year = clickStartDate.substring(0,4);
+      let Month = clickStartDate.substring(5,7);
+      let Day = clickStartDate.substring(8,10);
    
    
       const newDate =  new Date(Number(Year), Number(Month)-1, Number(Day));     
@@ -78,9 +84,13 @@
     const handleEndDateChange = (date) => {
       const clickEndDate = date.target.value;
 
-      var Year = clickEndDate.substring(0,4);
-      var Month = clickEndDate.substring(5,7);
-      var Day = clickEndDate.substring(8,10);
+      // if(clickEndDate==null){
+      //   return;
+      // }
+
+      let Year = clickEndDate.substring(0,4);
+      let Month = clickEndDate.substring(5,7);
+      let Day = clickEndDate.substring(8,10);
 
       const newDate =  new Date(Number(Year), Number(Month)-1, Number(Day));
       endDate.value = newDate;
@@ -154,6 +164,16 @@
   height: 100%;
   background: rgba(255, 255, 255, 0.8); 
   z-index: 9999; 
+}
+
+
+button {
+  height: 35px; 
+  margin-top: 5px; 
+  width: 50px; 
+  margin-left: 10px; 
+  color: white;
+
 }
   </style>
   
