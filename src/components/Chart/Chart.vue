@@ -7,7 +7,7 @@
           />       
       </div>
       <span style="margin: 10px;">~</span>
-      <div  style="margin: 10px;"><Datepicker      
+      <div style="margin: 10px;"><Datepicker      
           v-model="endDate"     
           @focus="handleEndDateChange"   
           />
@@ -27,21 +27,24 @@
       />
   </div>
 
-  <label style="margin-top: 30px; margin-bottom: 30px;">서버 이름 : {{  }}</label>
+ 
+
   <br>
-  <div>   
+  <!-- <div>   
     <canvas ref="chartCanvas" id="canvas">    
     </canvas>
- 
+  </div> -->
+  <div v-for="(chart, index) in charts" :key="index" style="height: 400px; margin-bottom: 100px;">
+    <label style="margin-top: 35px; margin-bottom: 10px;">서버 이름 : {{  }}</label>
+    <canvas :ref="el => chartCanvasRefs[index] = el" :id="'canvas' + index"></canvas>
   </div>
-
 
 
   </template>
   
   <script>
   import 'chartjs-adapter-date-fns';
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, onBeforeUnmount, nextTick  } from 'vue';
   import axios from 'axios';
   import { drawChart } from '../../common/common.js'; 
   import moment from 'moment';
@@ -61,7 +64,10 @@
     const selectedDate = ref();
     const formatStartDate = ref();
     const isLoading = ref(true);
-
+    const serverName = ref();
+    const chartCanvasRefs = ref([]);
+    const charts = ref([]);
+   
    
 
     const handleStartDateChange = (date) => {
@@ -83,11 +89,6 @@
 
     const handleEndDateChange = (date) => {
       const clickEndDate = date.target.value;
-
-      // if(clickEndDate==null){
-      //   return;
-      // }
-
       let Year = clickEndDate.substring(0,4);
       let Month = clickEndDate.substring(5,7);
       let Day = clickEndDate.substring(8,10);
@@ -109,28 +110,107 @@
             const response = await axios.get(`/get/chartData`, {
                   params: {
                     startDate: formattedStartDate,
-                      endDate: formattedEndDate
+                      endDate: formattedEndDate,
                     }
                   });
 
+                  
                 time.value = response.data.map(item => new Date(item.time).getTime());          
                 ping.value = response.data.map(item => item.ping);
-              
+                serverName.value = response.data.map(item => item.serverName);
 
-                drawChart(chartCanvas.value.getContext('2d'),time.value,ping.value);
-                isLoading.value = false;
-            } catch (error) {
-              console.error('Error fetching data:', error);
-            }
+
+
+                charts.value = Array.from({ length: 50 }, () => ({
+                    time: [...time.value],
+                    ping: [...ping.value],
+                    serverName : [...serverName.value]
+                  }));
+               
+               
+               await nextTick();
+               await drawChartsInGroups(3);
+              // charts.value.forEach((chart, index) => {
+              //         const canvas = chartCanvasRefs.value[index];
+              //     if (canvas) {
+              //       const context = canvas.getContext('2d');
+              //         drawChart(context, chart.time, chart.ping);
+              //     }
+              // });
+
+             
+
+              for (let index = 0; index < charts.value.length; index++) {
+                const chart = charts.value[index];
+                const canvas = chartCanvasRefs.value[index];
+                console.log(canvas);
+                if (canvas) {
+                  const context = canvas.getContext('2d');
+                 
+                await drawChartAsync(context, chart.time, chart.ping, true);
+              
+            }           
+          }                
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
       } else {
           alert("시작날짜는 끝날짜보다 작아야 합니다.")
       }
     };
 
+    const drawChartAsync = (context, time, ping ) => {
+      
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          drawChart(context, time, ping);
+          resolve();        
+        });
+      });
+    };
 
-    onMounted(getData);
+    
+    const drawChartsInGroups = async (groupSize) => {
+      for (let i = 0; i < charts.value.length; i += groupSize) {
+        isLoading.value = true;
+        const groupPromises = [];
+        for (let j = 0; j < groupSize && (i + j) < charts.value.length; j++) {
+          const index = i + j;
+          const chart = charts.value[index];
+          const canvas = chartCanvasRefs.value[index];
+          if (canvas) {
+            const context = canvas.getContext('2d');
+            groupPromises.push(drawChartAsync(context, chart.time, chart.ping));
+          }
+        }
+        await Promise.all(groupPromises);
+        isLoading.value = false;
+        await new Promise(resolve => setTimeout(resolve, 100)); // 잠시 대기
+      }
+      isLoading.value = false;
+    };
 
-   
+    //onMounted(getData);
+    const handleVisibilityChange = async () => {
+      if (!document.hidden) {
+        await reloadCharts();
+      }
+    };
+
+    const reloadCharts = async () => {
+      await nextTick();
+      await drawChartsInGroups(3);
+    };
+
+    onMounted(async () => {
+      await getData();
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    });
+
+    onBeforeUnmount(() => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    });
+
   
     return { chartCanvas,
               startDate,
@@ -140,7 +220,9 @@
               selectedDate,
               formatStartDate, 
               getData, 
-              isLoading
+              isLoading,
+              chartCanvasRefs,
+              charts
         };
     }
   };

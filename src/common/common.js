@@ -1,11 +1,13 @@
 import Chart from 'chart.js/auto';
 
+
 export const drawChart = (ctx, time, ping) => {
   if (Chart.getChart(ctx)) {
     Chart.getChart(ctx)?.destroy();
   }
     
    console.log("drawChart");
+   
     new Chart(ctx, {
       type: 'line',
       data: {
@@ -47,5 +49,3 @@ export const drawChart = (ctx, time, ping) => {
       }
     });
   };
-
-
