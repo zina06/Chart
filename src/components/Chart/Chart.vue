@@ -1,6 +1,8 @@
 <template>
-  
-     <div style="display: flex; justify-content: center; margin-top: 20px;">
+  <div class="center">
+    <img alt="Vue logo" src="@/assets/metanet.png" style="width: 200px;">
+  </div>
+     <div style="display: flex; justify-content: center;">
       <div style="margin: 10px;"><Datepicker 
           v-model="startDate"
           @focus="handleStartDateChange"
@@ -17,7 +19,7 @@
       
      
     </div>
-       <button @click="getData" class="btn btn-info btn-sm">조회</button>
+       <button @click="getData" class="btn btn-info btn-sm success">조회</button>
     </div>
 
   <div class="spinner-div" v-if="isLoading">
@@ -27,26 +29,22 @@
       />
   </div>
 
+  <br>
+  <div v-for="(chart, index) in charts" :key="index" id="chartDiv">
+    <label style="margin-top: 35px; margin-bottom: 10px;"><b>서버 이름 {{  }}</b></label>
+    {{ chart.ping[0] }}
+     <canvas :ref="el => chartCanvasRefs[index] = el" :id="'canvas' + index" ></canvas>
  
 
-  <br>
-  <!-- <div>   
-    <canvas ref="chartCanvas" id="canvas">    
-    </canvas>
-  </div> -->
-  <div v-for="(chart, index) in charts" :key="index" style="height: 400px; margin-bottom: 100px;">
-    <label style="margin-top: 35px; margin-bottom: 10px;">서버 이름 : {{  }}</label>
-    <canvas :ref="el => chartCanvasRefs[index] = el" :id="'canvas' + index"></canvas>
-  </div>
-
-
+</div>
+  
   </template>
   
   <script>
   import 'chartjs-adapter-date-fns';
-  import { ref, onMounted, onBeforeUnmount, nextTick  } from 'vue';
+  import { ref, onMounted,  nextTick,    } from 'vue';
   import axios from 'axios';
-  import { drawChart } from '../../common/common.js'; 
+  import { drawChart, useScrollLoad } from '../../common/common.js'; 
   import moment from 'moment';
 
 
@@ -56,123 +54,76 @@
   name: 'TimeChart',
   setup() {
     const date = new Date();
-    const time = ref([]);
-    const ping = ref([]);
-    const chartCanvas = ref();
     const startDate = ref(new Date(date.getFullYear(), date.getMonth(), 1));
     const endDate = ref(new Date());
-    const selectedDate = ref();
-    const formatStartDate = ref();
-    const isLoading = ref(true);
-    const serverName = ref();
+    const isLoading = ref(false);
     const chartCanvasRefs = ref([]);
     const charts = ref([]);
-   
-   
+    let currentPage = 1;
+    const pageSize = 3;
+    const scrollContainer = ref(null); // 스크롤 이벤트를 감지할 요소의 ref
 
-    const handleStartDateChange = (date) => {
-     const clickStartDate = date.target.value;
+    // 날짜 클릭 시 호출
+    const handleDateChange = (event, dateRef) => {
+      const dateString = event.target.value;
+      if (!dateString) return;
 
-     if(clickStartDate==null){
-        return;
-      }
-
-      let Year = clickStartDate.substring(0,4);
-      let Month = clickStartDate.substring(5,7);
-      let Day = clickStartDate.substring(8,10);
-   
-   
-      const newDate =  new Date(Number(Year), Number(Month)-1, Number(Day));     
-      startDate.value = newDate;
-    
+      const [year, month, day] = dateString.split('-').map(Number);
+      dateRef.value = new Date(year, month - 1, day);
     };
 
-    const handleEndDateChange = (date) => {
-      const clickEndDate = date.target.value;
-      let Year = clickEndDate.substring(0,4);
-      let Month = clickEndDate.substring(5,7);
-      let Day = clickEndDate.substring(8,10);
+    const handleStartDateChange = event => handleDateChange(event, startDate);
+    const handleEndDateChange = event => handleDateChange(event, endDate);
 
-      const newDate =  new Date(Number(Year), Number(Month)-1, Number(Day));
-      endDate.value = newDate;
-      
-    
-    };
-  
+
+
+    // 데이터 받아오기
     const getData = async () => {
-
       const formattedStartDate = moment(startDate.value).format('YYYY-MM-DD');
       const formattedEndDate = moment(endDate.value).format('YYYY-MM-DD');
 
-      if(formattedStartDate <= formattedEndDate) {
-        isLoading.value = true;
-          try {
-            const response = await axios.get(`/get/chartData`, {
-                  params: {
-                    startDate: formattedStartDate,
-                      endDate: formattedEndDate,
-                    }
-                  });
+      if (formattedStartDate > formattedEndDate) {
+        alert("시작날짜는 끝날짜보다 작아야 합니다.");
+        return;
+      }
 
-                  
-                time.value = response.data.map(item => new Date(item.time).getTime());          
-                ping.value = response.data.map(item => item.ping);
-                serverName.value = response.data.map(item => item.serverName);
+      isLoading.value = true;
 
+      try {
+        const response = await axios.get('/get/chartData', {
+          params: {
+            startDate: formattedStartDate,
+            endDate: formattedEndDate,
+            page: currentPage,
+            pageSize: pageSize
+          },
+        });
 
+        const data = response.data;
+        const time = data.map(item => new Date(item.time).getTime());
+        const ping = data.map(item => item.ping);
+        const serverName = data.map(item => item.serverName);
 
-                charts.value = Array.from({ length: 50 }, () => ({
-                    time: [...time.value],
-                    ping: [...ping.value],
-                    serverName : [...serverName.value]
-                  }));
-               
-               
-               await nextTick();
-               await drawChartsInGroups(3);
-              // charts.value.forEach((chart, index) => {
-              //         const canvas = chartCanvasRefs.value[index];
-              //     if (canvas) {
-              //       const context = canvas.getContext('2d');
-              //         drawChart(context, chart.time, chart.ping);
-              //     }
-              // });
+        charts.value = Array.from({ length: 5 }, () => ({
+          time: time,
+          ping: ping,
+          serverName: serverName[0], // Assuming all server names are the same for simplification
+        }));
 
-             
-
-              for (let index = 0; index < charts.value.length; index++) {
-                const chart = charts.value[index];
-                const canvas = chartCanvasRefs.value[index];
-                console.log(canvas);
-                if (canvas) {
-                  const context = canvas.getContext('2d');
-                 
-                await drawChartAsync(context, chart.time, chart.ping, true);
-              
-            }           
-          }                
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        }
-      } else {
-          alert("시작날짜는 끝날짜보다 작아야 합니다.")
+        await nextTick();
+        await drawChartsInGroups(5);
+       
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        isLoading.value = false;
       }
     };
 
-    const drawChartAsync = (context, time, ping ) => {
-      
-      return new Promise((resolve) => {
-        requestAnimationFrame(() => {
-          drawChart(context, time, ping);
-          resolve();        
-        });
-      });
-    };
 
-    
-    const drawChartsInGroups = async (groupSize) => {
+    // 그래프 밑으로 나열
+    const drawChartsInGroups = async groupSize => {
       for (let i = 0; i < charts.value.length; i += groupSize) {
-        isLoading.value = true;
         const groupPromises = [];
         for (let j = 0; j < groupSize && (i + j) < charts.value.length; j++) {
           const index = i + j;
@@ -180,55 +131,47 @@
           const canvas = chartCanvasRefs.value[index];
           if (canvas) {
             const context = canvas.getContext('2d');
-            groupPromises.push(drawChartAsync(context, chart.time, chart.ping));
+            groupPromises.push(drawChart(context, chart.time, chart.ping));
           }
         }
         await Promise.all(groupPromises);
-        isLoading.value = false;
-        await new Promise(resolve => setTimeout(resolve, 100)); // 잠시 대기
-      }
-      isLoading.value = false;
-    };
-
-    //onMounted(getData);
-    const handleVisibilityChange = async () => {
-      if (!document.hidden) {
-        await reloadCharts();
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     };
 
-    const reloadCharts = async () => {
-      await nextTick();
-      await drawChartsInGroups(3);
+    const { list } = useScrollLoad(scrollContainer, (start, size) => {
+      // 스크롤로 데이터를 불러오는 함수
+      return `https://jsonplaceholder.typicode.com/todos?_start=${start}&_limit=${size}`;
+    });
+
+ 
+
+    onMounted(() => {
+      getData();
+    });
+
+
+
+    return {
+      startDate,
+      endDate,
+      handleStartDateChange,
+      handleEndDateChange,
+      getData,
+      isLoading,
+      chartCanvasRefs,
+      charts,
+      list
     };
 
-    onMounted(async () => {
-      await getData();
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-    });
 
-    onBeforeUnmount(() => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    });
-
-  
-    return { chartCanvas,
-              startDate,
-              endDate,
-              handleStartDateChange,
-              handleEndDateChange,
-              selectedDate,
-              formatStartDate, 
-              getData, 
-              isLoading,
-              chartCanvasRefs,
-              charts
-        };
     }
   };
   </script>
   
   <style scoped>
+   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
+
   #canvas {
     width: 800px; 
     height: 400px;
@@ -257,5 +200,20 @@ button {
   color: white;
 
 }
+
+
+.center {
+     text-align: center; /* 가로 가운데 정렬 */
+        }
+
+
+#chartDiv{
+  height: 400px; 
+  margin-bottom:100px; 
+  margin-left: 20px; 
+  margin-right: 20px;
+
+} 
+
   </style>
   
